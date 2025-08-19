@@ -25,7 +25,7 @@ serve(async (req) => {
     }
 
     // API ga so'rov yuborish (simkarta holati uchun 9020 porti)
-    const apiUrl = `http://localhost:9020/check-simcard-status`
+    const apiUrl = `http://141.136.42.126:9020/check-simcard-status`
     
     const response = await fetch(apiUrl, {
       method: 'POST',

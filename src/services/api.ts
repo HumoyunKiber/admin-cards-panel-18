@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:9022';
+const API_BASE_URL = 'http://141.136.42.126:9022';
 
 // API client class
 class ApiClient {
