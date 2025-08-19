@@ -15,8 +15,12 @@ class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
     
     const config: RequestInit = {
+      mode: 'cors',
+      credentials: 'omit',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*',
         ...options.headers,
       },
       ...options,
