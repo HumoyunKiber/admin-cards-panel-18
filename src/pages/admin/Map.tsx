@@ -42,11 +42,9 @@ const Map = () => {
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/navigation-night-v1',
+      style: 'mapbox://styles/mapbox/streets-v12',
       center: jizzaxCenter, // Jizzax viloyati markazi
-      zoom: 9,
-      pitch: 45, // 3D ko'rinish uchun
-      bearing: 0
+      zoom: 9
     });
 
     // Navigation controls qo'shish
