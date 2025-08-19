@@ -32,9 +32,11 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: 'mapbox://styles/mapbox/navigation-night-v1',
       center: initialLocation ? [initialLocation.lng, initialLocation.lat] : [69.2401, 41.2995], // Tashkent center
       zoom: 12,
+      pitch: 45, // 3D ko'rinish uchun
+      bearing: 0
     });
 
     map.current.addControl(
