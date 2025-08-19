@@ -33,6 +33,12 @@ class ApiClient {
       return data;
     } catch (error) {
       console.error(`API request failed: ${endpoint}`, error);
+      
+      // Check if it's a network error
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error(`Server bilan aloqa o'rnatilmadi. Server ishlayotganligini tekshiring: ${this.baseURL}`);
+      }
+      
       throw error;
     }
   }

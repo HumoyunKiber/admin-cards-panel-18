@@ -21,6 +21,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return isAuthenticated ? <>{children}</> : <Navigate to="/" replace />;
 };
 
+const LoginRedirect: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Navigate to="/admin" replace /> : <Login />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -30,16 +35,16 @@ const App = () => (
         <SimCardProvider>
           <ShopProvider>
             <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LoginRedirect />} />
-            <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-              <Route index element={<Statistics />} />
-              <Route path="simcards" element={<SimCards />} />
-              <Route path="shops" element={<Shops />} />
-              <Route path="map" element={<Map />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Routes>
+                <Route path="/" element={<LoginRedirect />} />
+                <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+                  <Route index element={<Statistics />} />
+                  <Route path="simcards" element={<SimCards />} />
+                  <Route path="shops" element={<Shops />} />
+                  <Route path="map" element={<Map />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </BrowserRouter>
           </ShopProvider>
         </SimCardProvider>
@@ -47,10 +52,5 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
-
-const LoginRedirect: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/admin" replace /> : <Login />;
-};
 
 export default App;
