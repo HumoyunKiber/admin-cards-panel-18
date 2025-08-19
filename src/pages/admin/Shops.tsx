@@ -30,31 +30,7 @@ interface Shop {
 const Shops = () => {
   const { toast } = useToast();
   const { assignSimCardsToShop, getAvailableSimCardsCount, simCards } = useSimCard();
-  const { getAllShopSalesStats } = useShop();
-  const [shops, setShops] = useState<Shop[]>([
-    {
-      id: '1',
-      name: 'Toshkent Mega Store',
-      ownerName: 'Akmal Karimov',
-      ownerPhone: '+998 90 123 45 67',
-      address: 'Amir Temur ko\'chasi, 15-uy',
-      status: 'active',
-      region: 'Toshkent',
-      assignedSimCards: ['2'],
-      addedDate: '2024-01-15'
-    },
-    {
-      id: '2',
-      name: 'Samarqand Center',
-      ownerName: 'Odil Rahimov',
-      ownerPhone: '+998 91 876 54 32',
-      address: 'Registon maydoni, 7-uy',
-      status: 'active',
-      region: 'Samarqand',
-      assignedSimCards: [],
-      addedDate: '2024-01-14'
-    }
-  ]);
+  const { shops, createShop, deleteShop, getAllShopSalesStats, fetchShops, isLoading } = useShop();
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -74,7 +50,7 @@ const Shops = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Check if enough SIM cards are available
@@ -88,8 +64,7 @@ const Shops = () => {
       return;
     }
     
-    const newShop: Shop = {
-      id: Date.now().toString(),
+    const shopData = {
       name: formData.name,
       ownerName: formData.ownerName,
       ownerPhone: formData.ownerPhone,
@@ -102,40 +77,48 @@ const Shops = () => {
       addedDate: new Date().toISOString().split('T')[0]
     };
 
-    // Assign SIM cards if requested
-    if (formData.simCardCount > 0) {
-      const success = assignSimCardsToShop(newShop.id, newShop.name, formData.simCardCount);
-      if (success) {
-        // Get assigned SIM card IDs
-        const assignedCards = simCards
-          .filter(card => card.assignedTo === newShop.id)
-          .map(card => card.id);
-        newShop.assignedSimCards = assignedCards;
+    // API orqali magazin yaratish
+    const success = await createShop(shopData);
+    
+    if (success) {
+      // Simkartalarni biriktirish
+      if (formData.simCardCount > 0) {
+        // Yangi qo'shilgan magazinni topish uchun shops ro'yxatini yangilaymiz
+        const updatedShops = await fetchShops();
+        const latestShop = updatedShops.find(shop => 
+          shop.name === formData.name && 
+          shop.ownerName === formData.ownerName
+        );
         
-        toast({
-          title: "Muvaffaqiyat!",
-          description: `Magazin qo'shildi va ${formData.simCardCount} ta simkarta biriktrildi`,
-        });
+        if (latestShop) {
+          await assignSimCardsToShop(latestShop.id, latestShop.name, formData.simCardCount);
+        }
       }
-    } else {
-      toast({
-        title: "Muvaffaqiyat!",
-        description: "Magazin muvaffaqiyatli qo'shildi",
+      
+      setFormData({ 
+        name: '', 
+        ownerName: '', 
+        ownerPhone: '', 
+        address: '', 
+        latitude: undefined, 
+        longitude: undefined, 
+        region: '', 
+        simCardCount: 0, 
+        status: 'active' 
       });
+      setShowForm(false);
+      setShowLocationPicker(false);
+      
+      // Ma'lumotlarni yangilash
+      await fetchShops();
     }
-
-    setShops([...shops, newShop]);
-    setFormData({ name: '', ownerName: '', ownerPhone: '', address: '', latitude: undefined, longitude: undefined, region: '', simCardCount: 0, status: 'active' });
-    setShowForm(false);
-    setShowLocationPicker(false);
   };
 
-  const handleDelete = (id: string) => {
-    setShops(shops.filter(shop => shop.id !== id));
-    toast({
-      title: "O'chirildi!",
-      description: "Magazin muvaffaqiyatli o'chirildi",
-    });
+  const handleDelete = async (id: string) => {
+    const success = await deleteShop(id);
+    if (success) {
+      await fetchShops(); // Ma'lumotlarni yangilash
+    }
   };
 
   const filteredShops = shops.filter(shop =>
@@ -267,17 +250,43 @@ const Shops = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="status">Holat</Label>
-                <Select onValueChange={(value) => setFormData({ ...formData, status: value as 'active' | 'inactive' })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Holatni tanlang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Faol</SelectItem>
-                    <SelectItem value="inactive">Nofaol</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="region">Viloyat/hudud</Label>
+                  <Select required onValueChange={(value) => setFormData({ ...formData, region: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Viloyatni tanlang" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Toshkent">Toshkent</SelectItem>
+                      <SelectItem value="Samarqand">Samarqand</SelectItem>
+                      <SelectItem value="Buxoro">Buxoro</SelectItem>
+                      <SelectItem value="Andijon">Andijon</SelectItem>
+                      <SelectItem value="Farg'ona">Farg'ona</SelectItem>
+                      <SelectItem value="Namangan">Namangan</SelectItem>
+                      <SelectItem value="Qashqadaryo">Qashqadaryo</SelectItem>
+                      <SelectItem value="Surxondaryo">Surxondaryo</SelectItem>
+                      <SelectItem value="Sirdaryo">Sirdaryo</SelectItem>
+                      <SelectItem value="Jizzax">Jizzax</SelectItem>
+                      <SelectItem value="Navoiy">Navoiy</SelectItem>
+                      <SelectItem value="Xorazm">Xorazm</SelectItem>
+                      <SelectItem value="Qoraqalpog'iston">Qoraqalpog'iston</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="status">Holat</Label>
+                  <Select onValueChange={(value) => setFormData({ ...formData, status: value as 'active' | 'inactive' })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Holatni tanlang" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Faol</SelectItem>
+                      <SelectItem value="inactive">Nofaol</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="flex gap-2">

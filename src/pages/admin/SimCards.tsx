@@ -17,7 +17,7 @@ import AutoCheckPanel from '@/components/admin/AutoCheckPanel';
 
 const SimCards = () => {
   const { toast } = useToast();
-  const { simCards, setSimCards } = useSimCard();
+  const { simCards, createSimCard, deleteSimCard, isLoading } = useSimCard();
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,27 +27,33 @@ const SimCards = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newSimCard = {
-      id: Date.now().toString(),
+    // Kodni tekshirish
+    if (formData.code.length !== 19 || !/^\d+$/.test(formData.code)) {
+      toast({
+        title: "Xato!",
+        description: "Simkarta kodi 19 ta raqamdan iborat bo'lishi kerak",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const simCardData = {
       code: formData.code,
       status: 'available' as const,
       addedDate: new Date().toISOString().split('T')[0]
     };
 
-    setSimCards([...simCards, newSimCard]);
-    setFormData({ code: '' });
-    setShowForm(false);
-    
-    toast({
-      title: "Muvaffaqiyat!",
-      description: "Simkarta muvaffaqiyatli qo'shildi",
-    });
+    const success = await createSimCard(simCardData);
+    if (success) {
+      setFormData({ code: '' });
+      setShowForm(false);
+    }
   };
 
-  const handleBulkSubmit = (e: React.FormEvent) => {
+  const handleBulkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const codes = bulkCodes
@@ -64,19 +70,26 @@ const SimCards = () => {
       return;
     }
 
-    const newSimCards = codes.map(code => ({
-      id: `${Date.now()}-${Math.random()}`,
-      code,
-      status: 'available' as const,
-      addedDate: new Date().toISOString().split('T')[0]
-    }));
+    // Har bir kodni API orqali qo'shish
+    let successCount = 0;
+    for (const code of codes) {
+      const simCardData = {
+        code,
+        status: 'available' as const,
+        addedDate: new Date().toISOString().split('T')[0]
+      };
+      
+      const success = await createSimCard(simCardData);
+      if (success) {
+        successCount++;
+      }
+    }
 
-    setSimCards([...simCards, ...newSimCards]);
     setBulkCodes('');
     
     toast({
       title: "Muvaffaqiyat!",
-      description: `${newSimCards.length} ta simkarta muvaffaqiyatli qo'shildi`,
+      description: `${successCount} ta simkarta muvaffaqiyatli qo'shildi`,
     });
   };
 
@@ -130,12 +143,9 @@ const SimCards = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
-    setSimCards(simCards.filter(card => card.id !== id));
-    toast({
-      title: "O'chirildi!",
-      description: "Simkarta muvaffaqiyatli o'chirildi",
-    });
+  const handleDelete = async (id: string) => {
+    const success = await deleteSimCard(id);
+    // Context o'z-o'zidan yangilanadi, qo'shimcha harakat shart emas
   };
 
   const filteredSimCards = simCards.filter(card =>

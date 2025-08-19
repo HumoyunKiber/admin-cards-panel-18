@@ -7,7 +7,7 @@ interface ShopContextType {
   isLoading: boolean;
   error: string | null;
   setShops: React.Dispatch<React.SetStateAction<Shop[]>>;
-  fetchShops: () => Promise<void>;
+  fetchShops: () => Promise<Shop[]>;
   createShop: (shopData: Omit<Shop, 'id'>) => Promise<boolean>;
   updateShop: (shopId: string, shopData: Partial<Shop>) => Promise<boolean>;
   deleteShop: (shopId: string) => Promise<boolean>;
@@ -26,12 +26,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchShops = async () => {
+  const fetchShops = async (): Promise<Shop[]> => {
     setIsLoading(true);
     setError(null);
     try {
       const data = await apiClient.getShops();
       setShops(data);
+      return data;
     } catch (error) {
       const errorMessage = 'Magazinlarni yuklashda xatolik yuz berdi';
       setError(errorMessage);
@@ -40,6 +41,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: errorMessage,
         variant: "destructive",
       });
+      return [];
     } finally {
       setIsLoading(false);
     }
